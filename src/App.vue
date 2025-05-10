@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { logout } from '@/api/auth'
+import eventBus from '@/utils/eventBus'
 
 const router = useRouter()
 const route = useRoute()
@@ -16,6 +19,13 @@ const navItems = [
   { name: '师兄师姐说', path: '/experience' }
 ]
 
+// 用户登录状态
+const isLoggedIn = ref(false)
+const userInfo = ref({
+  username: '',
+  avatar: ''
+})
+
 // 处理菜单选择事件
 const handleSelect = (key: string) => {
   router.push(key)
@@ -25,6 +35,97 @@ const handleSelect = (key: string) => {
 const activeIndex = computed(() => {
   return route.path
 })
+
+// 检查登录状态
+const checkLoginStatus = () => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    isLoggedIn.value = true
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      userInfo.value.username = user.username
+      userInfo.value.avatar = user.avatar
+    }
+  } else {
+    isLoggedIn.value = false
+  }
+}
+
+// 退出登录
+const handleLogout = () => {
+  ElMessageBox.confirm(
+    '确定要退出登录吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      // 调用退出登录API
+      await logout()
+
+      // 清除本地存储的用户信息和token
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+
+      // 触发退出事件
+      eventBus.emit('logout')
+      isLoggedIn.value = false
+
+      ElMessage.success('已退出登录')
+
+      // 如果当前页面需要登录权限，跳转到首页
+      if (route.meta.requiresAuth) {
+        router.push('/')
+      }
+    } catch (error) {
+      console.error('Logout failed:', error)
+      ElMessage.error('退出登录失败')
+    }
+  }).catch(() => {
+    // 取消退出
+  })
+}
+
+// 监听登录事件
+const setupEventListeners = () => {
+  // 监听登录事件
+  eventBus.on('login', () => {
+    checkLoginStatus()
+  })
+
+  // 监听退出事件
+  eventBus.on('logout', () => {
+    isLoggedIn.value = false
+    userInfo.value = { username: '', avatar: '' }
+  })
+
+  // 监听用户信息更新事件
+  eventBus.on('update-user', () => {
+    checkLoginStatus()
+  })
+}
+
+// 组件挂载时检查登录状态
+onMounted(() => {
+  checkLoginStatus()
+  setupEventListeners()
+
+  // 监听存储变化，处理在其他标签页登录/退出的情况
+  window.addEventListener('storage', () => {
+    checkLoginStatus()
+  })
+})
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  eventBus.off('login')
+  eventBus.off('logout')
+  eventBus.off('update-user')
+})
 </script>
 
 <template>
@@ -33,7 +134,7 @@ const activeIndex = computed(() => {
     <el-header class="header">
       <div class="logo-container" @click="router.push('/')" style="cursor: pointer">
         <img src="/vite.svg" alt="Logo" class="logo" />
-        <h1 class="site-title">华为创新俱乐部</h1>
+        <h1 class="site-title">华为俱乐部</h1>
       </div>
       <el-menu
         mode="horizontal"
@@ -46,6 +147,35 @@ const activeIndex = computed(() => {
           {{ item.name }}
         </el-menu-item>
       </el-menu>
+
+      <!-- 用户信息/登录按钮 -->
+      <div class="user-section">
+        <template v-if="isLoggedIn">
+          <el-dropdown trigger="click">
+            <div class="user-info-dropdown">
+              <el-avatar :size="32" :src="userInfo.avatar" />
+              <span class="username">{{ userInfo.username }}</span>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="router.push('/profile')">
+                  <el-icon><User /></el-icon> 个人中心
+                </el-dropdown-item>
+                <el-dropdown-item @click="router.push('/settings')">
+                  <el-icon><Setting /></el-icon> 账号设置
+                </el-dropdown-item>
+                <el-dropdown-item divided @click="handleLogout">
+                  <el-icon><SwitchButton /></el-icon> 退出登录
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </template>
+        <template v-else>
+          <el-button type="primary" @click="router.push('/login')">登录</el-button>
+          <el-button @click="router.push('/register')">注册</el-button>
+        </template>
+      </div>
     </el-header>
 
     <!-- 主要内容区 -->
@@ -98,6 +228,26 @@ const activeIndex = computed(() => {
 
 .nav-menu {
   border-bottom: none;
+  flex: 1;
+  justify-content: center;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-info-dropdown {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.username {
+  margin-left: 8px;
+  font-size: 14px;
+  color: #333;
 }
 
 .main-content {

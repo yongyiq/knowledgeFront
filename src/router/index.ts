@@ -9,6 +9,42 @@ const routes: Array<RouteRecordRaw> = [
       title: '首页'
     }
   },
+  // 登录注册页面
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('../views/auth/Login.vue'),
+    meta: {
+      title: '登录'
+    }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../views/auth/Register.vue'),
+    meta: {
+      title: '注册'
+    }
+  },
+  // 用户中心页面
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('../views/user/Profile.vue'),
+    meta: {
+      title: '个人中心',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('../views/user/Settings.vue'),
+    meta: {
+      title: '账号设置',
+      requiresAuth: true
+    }
+  },
   // 二级页面 - 知识库
   {
     path: '/knowledge',
@@ -88,9 +124,22 @@ const router = createRouter({
   routes
 })
 
-// 全局前置守卫 - 设置页面标题
+// 全局前置守卫 - 设置页面标题和权限验证
 router.beforeEach((to, from, next) => {
-  document.title = `${to.meta.title || '华为创新俱乐部'}`
+  // 设置页面标题
+  document.title = `${to.meta.title || '华为俱乐部'}`
+
+  // 检查是否需要登录权限
+  if (to.meta.requiresAuth) {
+    // 检查是否已登录
+    const token = localStorage.getItem('token')
+    if (!token) {
+      // 未登录，跳转到登录页
+      next({ path: '/login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+
   next()
 })
 
