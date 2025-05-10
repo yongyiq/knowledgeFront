@@ -15,7 +15,6 @@ const navItems = [
   { name: '项目分享与讨论', path: '/projects' },
   { name: '华为竞赛专区', path: '/competition' },
   { name: '实用工具', path: '/tools' },
-  { name: '华俱微信推文', path: '/wechat-articles' },
   { name: '师兄师姐说', path: '/experience' }
 ]
 

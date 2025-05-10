@@ -81,15 +81,7 @@ const routes: Array<RouteRecordRaw> = [
       title: '实用工具'
     }
   },
-  // 二级页面 - 华俱微信推文
-  {
-    path: '/wechat-articles',
-    name: 'WechatArticles',
-    component: () => import('../views/sections/WechatArticles.vue'),
-    meta: {
-      title: '华俱微信推文'
-    }
-  },
+
   // 二级页面 - 师兄师姐说（经验分享）
   {
     path: '/experience',

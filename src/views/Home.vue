@@ -56,15 +56,9 @@ const sections = ref([
     path: '/tools',
     description: '开发工具、学习资源、效率提升'
   },
+
   {
     id: 5,
-    title: '华俱微信推文',
-    icon: 'ChatLineRound',
-    path: '/wechat-articles',
-    description: '微信公众号精选文章'
-  },
-  {
-    id: 6,
     title: '师兄师姐说',
     icon: 'User',
     path: '/experience',
