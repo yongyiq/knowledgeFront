@@ -13,7 +13,7 @@ const navItems = [
   { name: '首页', path: '/' },
   { name: '知识库', path: '/knowledge' },
   { name: '项目分享与讨论', path: '/projects' },
-  { name: '华为竞赛专区', path: '/competition' },
+  { name: '竞赛专区', path: '/competition' },
   { name: '实用工具', path: '/tools' },
   { name: '师兄师姐说', path: '/experience' }
 ]

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
 import { knowledgeApi } from '@/api'
 import type { Article } from '@/api/types/knowledge'
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -239,7 +240,9 @@ const viewRelatedArticle = (id: number) => {
 
         <el-divider />
 
-        <div class="article-content" v-html="article.content"></div>
+        <div class="article-content">
+          <MarkdownRenderer v-if="article.content" :content="article.content" />
+        </div>
 
         <div class="article-tags">
           <span class="tag-label">标签:</span>
