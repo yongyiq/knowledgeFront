@@ -11,6 +11,7 @@ const router = useRouter()
 // 注册表单数据
 const registerForm = reactive({
   username: '',
+  nickname: '',
   email: '',
   password: '',
   confirmPassword: '',
@@ -21,7 +22,12 @@ const registerForm = reactive({
 const rules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9_]+$/, message: '用户名只能包含字母、数字和下划线', trigger: 'blur' }
+  ],
+  nickname: [
+    { required: true, message: '请输入昵称', trigger: 'blur' },
+    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
   ],
   email: [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },
@@ -76,6 +82,7 @@ const handleRegister = async () => {
         // 调用注册API，发送哈希后的密码
         await register({
           username: registerForm.username,
+          nickname: registerForm.nickname,
           email: registerForm.email,
           password: hashedPassword
         }) as RegisterResponse
@@ -102,7 +109,7 @@ const goToLogin = () => {
     <div class="register-box">
       <div class="register-header">
         <h2>注册账号</h2>
-        <p>加入华为俱乐部，开启您的技术之旅</p>
+        <p>加入知识分享，开启您的技术之旅</p>
       </div>
 
       <el-form
@@ -115,7 +122,16 @@ const goToLogin = () => {
         <el-form-item label="用户名" prop="username">
           <el-input
             v-model="registerForm.username"
-            placeholder="请输入用户名"
+            placeholder="请输入用户名（登录账号）"
+            prefix-icon="User"
+          />
+          <div class="form-tip">用户名仅用于登录，只能包含字母、数字和下划线</div>
+        </el-form-item>
+
+        <el-form-item label="昵称" prop="nickname">
+          <el-input
+            v-model="registerForm.nickname"
+            placeholder="请输入昵称（将在前台展示）"
             prefix-icon="User"
           />
         </el-form-item>
@@ -214,5 +230,11 @@ const goToLogin = () => {
 
 .login-link {
   text-align: center;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
 }
 </style>

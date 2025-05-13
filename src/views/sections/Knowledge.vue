@@ -1,78 +1,60 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElLoading } from 'element-plus'
+import { knowledgeApi } from '@/api'
+import type { Category, Article, ArticleListResponse } from '@/api/types/knowledge'
 
 const router = useRouter()
 
+// 加载状态
+const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+
 // 知识分类
-const categories = ref([
-  { id: 1, name: '编程语言', count: 24 },
-  { id: 2, name: '算法与数据结构', count: 18 },
-  { id: 3, name: '前端开发', count: 32 },
-  { id: 4, name: '后端开发', count: 27 },
-  { id: 5, name: '移动开发', count: 15 },
-  { id: 6, name: '人工智能', count: 20 },
-  { id: 7, name: '云计算', count: 12 },
-  { id: 8, name: '大数据', count: 9 }
-])
+const categories = ref<Category[]>([])
 
 // 知识文章列表
-const articles = ref([
-  {
-    id: 1,
-    title: 'JavaScript基础知识总结',
-    category: '前端开发',
-    author: '张三',
-    date: '2023-12-15',
-    views: 1250,
-    summary: 'JavaScript是一种具有函数优先特性的轻量级解释型或者说即时编译型的编程语言。本文总结了JavaScript的基础知识，包括变量、数据类型、函数、对象等内容。'
-  },
-  {
-    id: 2,
-    title: 'Python入门指南',
-    category: '编程语言',
-    author: '李四',
-    date: '2023-12-10',
-    views: 980,
-    summary: 'Python是一种广泛使用的解释型、高级编程语言，它的设计哲学强调代码的可读性和简洁的语法。本文介绍了Python的基本语法、数据类型、控制流等内容。'
-  },
-  {
-    id: 3,
-    title: '数据结构：链表详解',
-    category: '算法与数据结构',
-    author: '王五',
-    date: '2023-12-05',
-    views: 756,
-    summary: '链表是一种常见的基础数据结构，是一种线性表，但是并不会按线性的顺序存储数据，而是在每一个节点里存到下一个节点的指针。本文详细介绍了链表的原理和实现。'
-  },
-  {
-    id: 4,
-    title: 'Vue.js组件化开发实践',
-    category: '前端开发',
-    author: '赵六',
-    date: '2023-11-28',
-    views: 1120,
-    summary: 'Vue.js是一套用于构建用户界面的渐进式框架。与其它大型框架不同的是，Vue被设计为可以自底向上逐层应用。本文介绍了Vue.js的组件化开发实践。'
-  },
-  {
-    id: 5,
-    title: 'Spring Boot入门教程',
-    category: '后端开发',
-    author: '钱七',
-    date: '2023-11-20',
-    views: 890,
-    summary: 'Spring Boot是由Pivotal团队提供的全新框架，其设计目的是用来简化Spring应用的初始搭建以及开发过程。本文介绍了Spring Boot的基本使用方法。'
-  },
-  {
-    id: 6,
-    title: '机器学习算法概述',
-    category: '人工智能',
-    author: '孙八',
-    date: '2023-11-15',
-    views: 1350,
-    summary: '机器学习是人工智能的一个分支，是一门多领域交叉学科，涉及概率论、统计学、逼近论、凸分析、计算复杂性理论等多门学科。本文概述了常见的机器学习算法。'
+const articles = ref<Article[]>([])
+
+// 获取分类列表
+const fetchCategories = async () => {
+  try {
+    loading.value = true
+    const res = await knowledgeApi.getCategories()
+    categories.value = res
+  } catch (error) {
+    console.error('Failed to fetch categories:', error)
+    ElMessage.error('获取分类列表失败')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+// 获取文章列表
+const fetchArticles = async () => {
+  try {
+    loading.value = true
+    const res = await knowledgeApi.getArticles({
+      page: currentPage.value - 1, // 后端分页从0开始
+      size: pageSize.value,
+      category: selectedCategory.value,
+      keyword: searchKeyword.value
+    }) as ArticleListResponse
+
+    // 适配后端返回的数据格式
+    articles.value = res.content
+    total.value = res.totalElements
+  } catch (error) {
+    console.error('Failed to fetch articles:', error)
+    ElMessage.error('获取文章列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 
 // 搜索关键词
 const searchKeyword = ref('')
@@ -80,36 +62,50 @@ const searchKeyword = ref('')
 // 当前选中的分类
 const selectedCategory = ref('')
 
-// 筛选后的文章列表
-const filteredArticles = computed(() => {
-  return articles.value.filter(article => {
-    // 根据关键词筛选
-    const matchKeyword = searchKeyword.value === '' ||
-                         article.title.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-                         article.summary.toLowerCase().includes(searchKeyword.value.toLowerCase())
+// 处理搜索
+const handleSearch = () => {
+  currentPage.value = 1 // 重置到第一页
+  fetchArticles()
+}
 
-    // 根据分类筛选
-    const matchCategory = selectedCategory.value === '' || article.category === selectedCategory.value
+// 处理分类选择
+const handleCategorySelect = (category: string) => {
+  selectedCategory.value = category
+  currentPage.value = 1 // 重置到第一页
+  fetchArticles()
+}
 
-    return matchKeyword && matchCategory
-  })
-})
+// 处理页码变化
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  fetchArticles()
+}
+
+// 处理每页条数变化
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1 // 重置到第一页
+  fetchArticles()
+}
 
 // 跳转到文章详情页
 const viewArticle = (id: number) => {
   router.push(`/content/${id}`)
 }
 
-// 选择分类
-const selectCategory = (category: string) => {
-  selectedCategory.value = category
-}
-
 // 清除筛选
 const clearFilters = () => {
   searchKeyword.value = ''
   selectedCategory.value = ''
+  currentPage.value = 1
+  fetchArticles()
 }
+
+// 初始化数据
+onMounted(() => {
+  fetchCategories()
+  fetchArticles()
+})
 </script>
 
 <template>
@@ -128,7 +124,9 @@ const clearFilters = () => {
             placeholder="搜索知识文章..."
             prefix-icon="Search"
             clearable
+            @keyup.enter="handleSearch"
           />
+          <el-button type="primary" @click="handleSearch">搜索</el-button>
         </div>
 
         <div class="category-list">
@@ -145,7 +143,7 @@ const clearFilters = () => {
               v-for="category in categories"
               :key="category.id"
               :class="{ active: selectedCategory === category.name }"
-              @click="selectCategory(category.name)"
+              @click="handleCategorySelect(category.name)"
             >
               {{ category.name }} <span class="count">({{ category.count }})</span>
             </li>
@@ -165,11 +163,11 @@ const clearFilters = () => {
           <el-button size="small" @click="clearFilters">清除全部</el-button>
         </div>
 
-        <div class="article-list">
-          <el-empty v-if="filteredArticles.length === 0" description="没有找到匹配的文章" />
+        <div class="article-list" v-loading="loading">
+          <el-empty v-if="articles.length === 0" description="没有找到匹配的文章" />
 
           <el-card
-            v-for="article in filteredArticles"
+            v-for="article in articles"
             :key="article.id"
             class="article-card"
             shadow="hover"
@@ -177,9 +175,9 @@ const clearFilters = () => {
           >
             <div class="article-meta">
               <el-tag size="small">{{ article.category }}</el-tag>
-              <span class="author">{{ article.author }}</span>
-              <span class="date">{{ article.date }}</span>
-              <span class="views"><el-icon><View /></el-icon> {{ article.views }}</span>
+              <span class="author">{{ article.createBy }}</span>
+              <span class="date">{{ article.createTime }}</span>
+              <span class="views"><el-icon><View /></el-icon> {{ article.viewCount }}</span>
             </div>
             <h3 class="article-title">{{ article.title }}</h3>
             <p class="article-summary">{{ article.summary }}</p>
@@ -193,9 +191,13 @@ const clearFilters = () => {
         <div class="pagination">
           <el-pagination
             background
-            layout="prev, pager, next"
-            :total="50"
-            :page-size="10"
+            layout="sizes, prev, pager, next, jumper, total"
+            :total="total"
+            :page-size="pageSize"
+            :current-page="currentPage"
+            :page-sizes="[10, 20, 50, 100]"
+            @current-change="handlePageChange"
+            @size-change="handleSizeChange"
           />
         </div>
       </div>

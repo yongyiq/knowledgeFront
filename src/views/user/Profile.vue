@@ -12,6 +12,7 @@ const router = useRouter()
 const userInfo = ref({
   id: 1,
   username: 'demo_user',
+  nickname: 'Demo User',
   email: 'demo@example.com',
   avatar: 'https://via.placeholder.com/150',
   bio: '华为技术爱好者，专注于前端开发和人工智能应用。',
@@ -117,6 +118,7 @@ onMounted(() => {
     if (userStr) {
       const user = JSON.parse(userStr)
       userInfo.value.username = user.username
+      userInfo.value.nickname = user.nickname || user.username
       userInfo.value.avatar = user.avatar
 
       // 获取完整的用户数据
@@ -172,7 +174,7 @@ const goToSettings = () => {
           <el-avatar :size="100" :src="userInfo.avatar" />
         </div>
         <div class="user-details">
-          <h1>{{ userInfo.username }}</h1>
+          <h1>{{ userInfo.nickname }}</h1>
           <p class="user-bio">{{ userInfo.bio }}</p>
           <p class="user-meta">
             <el-tag size="small">{{ userInfo.role === 'admin' ? '管理员' : '普通用户' }}</el-tag>

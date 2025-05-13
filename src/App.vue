@@ -22,6 +22,7 @@ const navItems = [
 const isLoggedIn = ref(false)
 const userInfo = ref({
   username: '',
+  nickname: '',
   avatar: ''
 })
 
@@ -44,6 +45,7 @@ const checkLoginStatus = () => {
     if (userStr) {
       const user = JSON.parse(userStr)
       userInfo.value.username = user.username
+      userInfo.value.nickname = user.nickname || user.username
       userInfo.value.avatar = user.avatar
     }
   } else {
@@ -99,7 +101,7 @@ const setupEventListeners = () => {
   // 监听退出事件
   eventBus.on('logout', () => {
     isLoggedIn.value = false
-    userInfo.value = { username: '', avatar: '' }
+    userInfo.value = { username: '', nickname: '', avatar: '' }
   })
 
   // 监听用户信息更新事件
@@ -133,7 +135,7 @@ onUnmounted(() => {
     <el-header class="header">
       <div class="logo-container" @click="router.push('/')" style="cursor: pointer">
         <img src="/vite.svg" alt="Logo" class="logo" />
-        <h1 class="site-title">华为俱乐部</h1>
+        <h1 class="site-title">知识改变世界</h1>
       </div>
       <el-menu
         mode="horizontal"
@@ -153,7 +155,7 @@ onUnmounted(() => {
           <el-dropdown trigger="click">
             <div class="user-info-dropdown">
               <el-avatar :size="32" :src="userInfo.avatar" />
-              <span class="username">{{ userInfo.username }}</span>
+              <span class="username">{{ userInfo.nickname || userInfo.username }}</span>
             </div>
             <template #dropdown>
               <el-dropdown-menu>
@@ -188,7 +190,7 @@ onUnmounted(() => {
 
     <!-- 页脚 -->
     <el-footer class="footer">
-      <p>© {{ new Date().getFullYear() }} 华为创新俱乐部 版权所有</p>
+      <p>© {{ new Date().getFullYear() }} yongyiq 版权所有</p>
     </el-footer>
   </div>
 </template>

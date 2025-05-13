@@ -9,12 +9,17 @@ export interface ApiResponse<T = any> {
 // 用户信息接口
 export interface UserInfo {
   id: number
-  username: string
+  username: string  // 用于登录
+  nickname: string  // 用于前台展示
   email: string
   avatar: string
   bio: string
   role: string
   createTime: string
+  updateTime?: string
+  createBy?: string
+  updateBy?: string
+  delFlag?: number
 }
 
 // 登录响应接口

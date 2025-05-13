@@ -8,7 +8,7 @@ const router = useRouter()
 const carouselItems = ref([
   {
     id: 1,
-    title: '华为创新俱乐部活动',
+    title: '活动',
     image: 'https://via.placeholder.com/1200x400?text=华为创新俱乐部活动',
     description: '最新活动和公告'
   },
@@ -44,7 +44,7 @@ const sections = ref([
   },
   {
     id: 3,
-    title: '华为竞赛专区',
+    title: '竞赛专区',
     icon: 'Trophy',
     path: '/competition',
     description: '竞赛信息、历届题目、优秀作品'
@@ -90,9 +90,9 @@ const navigateToSection = (path: string) => {
 
     <!-- 欢迎信息 -->
     <div class="welcome-section container">
-      <h2 class="section-title">欢迎来到华为创新俱乐部</h2>
+      <h2 class="section-title">欢迎来到知识分享库</h2>
       <p class="section-description">
-        华为创新俱乐部是一个技术交流、学习分享的平台，为广大学生提供华为相关的技术资源、竞赛信息和交流机会。
+        知识分享库是一个技术交流、学习分享的平台，为广大学生提供华为相关的技术资源、竞赛信息和交流机会。
       </p>
     </div>
 

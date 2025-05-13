@@ -55,6 +55,7 @@ const handleLogin = async () => {
         localStorage.setItem('user', JSON.stringify({
           id: response.userInfo.id,
           username: response.userInfo.username,
+          nickname: response.userInfo.nickname,
           avatar: response.userInfo.avatar || 'https://via.placeholder.com/100'
         }))
 
@@ -86,7 +87,7 @@ const goToRegister = () => {
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <h2>登录华为俱乐部</h2>
+        <h2>登录</h2>
         <p>欢迎回来，请登录您的账号</p>
       </div>
 

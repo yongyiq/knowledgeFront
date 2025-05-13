@@ -129,7 +129,7 @@ const activeTab = ref('current')
 <template>
   <div class="competition-container container">
     <div class="page-header">
-      <h1>华为竞赛专区</h1>
+      <h1>竞赛专区</h1>
       <p>了解最新竞赛信息，查看历届竞赛回顾，展示优秀参赛作品</p>
     </div>
 

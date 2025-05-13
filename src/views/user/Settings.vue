@@ -12,6 +12,7 @@ const router = useRouter()
 // 用户信息表单
 const userForm = reactive({
   username: '',
+  nickname: '',
   email: '',
   bio: '',
   avatar: 'https://via.placeholder.com/150'
@@ -28,7 +29,12 @@ const passwordForm = reactive({
 const userRules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9_]+$/, message: '用户名只能包含字母、数字和下划线', trigger: 'blur' }
+  ],
+  nickname: [
+    { required: true, message: '请输入昵称', trigger: 'blur' },
+    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
   ],
   email: [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },
@@ -89,6 +95,7 @@ const fetchUserData = async () => {
 
     // 更新用户表单数据
     userForm.username = userData.username
+    userForm.nickname = userData.nickname || userData.username
     userForm.email = userData.email
     userForm.bio = userData.bio || ''
     userForm.avatar = userData.avatar || 'https://via.placeholder.com/150'
@@ -112,6 +119,7 @@ onMounted(() => {
   if (userStr) {
     const user = JSON.parse(userStr)
     userForm.username = user.username
+    userForm.nickname = user.nickname || user.username
     userForm.avatar = user.avatar
 
     // 获取完整的用户数据
@@ -131,6 +139,7 @@ const updateProfile = async () => {
         // 调用更新用户信息API
         await updateUserInfo({
           username: userForm.username,
+          nickname: userForm.nickname,
           email: userForm.email,
           bio: userForm.bio,
           avatar: userForm.avatar
@@ -140,6 +149,7 @@ const updateProfile = async () => {
         const user = {
           id: 1, // 这里应该使用实际的用户ID
           username: userForm.username,
+          nickname: userForm.nickname,
           avatar: userForm.avatar
         }
         localStorage.setItem('user', JSON.stringify(user))
@@ -247,6 +257,12 @@ const beforeAvatarUpload = (file: File) => {
 
             <el-form-item label="用户名" prop="username">
               <el-input v-model="userForm.username" />
+              <div class="form-tip">用户名仅用于登录，只能包含字母、数字和下划线</div>
+            </el-form-item>
+
+            <el-form-item label="昵称" prop="nickname">
+              <el-input v-model="userForm.nickname" />
+              <div class="form-tip">昵称将在前台展示</div>
             </el-form-item>
 
             <el-form-item label="邮箱" prop="email">
@@ -515,5 +531,11 @@ const beforeAvatarUpload = (file: File) => {
   .notification-status {
     align-self: flex-end;
   }
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
 }
 </style>

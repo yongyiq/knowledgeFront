@@ -15,6 +15,7 @@ export function login(data: {
 // 用户注册接口
 export function register(data: {
   username: string
+  nickname: string
   email: string
   password: string
 }) {
@@ -36,6 +37,7 @@ export function getUserInfo() {
 // 修改用户信息接口
 export function updateUserInfo(data: {
   username?: string
+  nickname?: string
   email?: string
   avatar?: string
   bio?: string
