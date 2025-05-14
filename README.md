@@ -14,11 +14,6 @@
 - Marked (Markdown 渲染)
 - Highlight.js (代码高亮)
 
-### 后端
-- Spring Boot
-- MySQL
-- MyBatis-Plus
-- JWT (JSON Web Token)
 
 ## 功能模块
 
