@@ -119,7 +119,7 @@ const router = createRouter({
 // 全局前置守卫 - 设置页面标题和权限验证
 router.beforeEach((to, from, next) => {
   // 设置页面标题
-  document.title = `${to.meta.title || '华为俱乐部'}`
+  document.title = `${to.meta.title || '知识分享平台'}`
 
   // 检查是否需要登录权限
   if (to.meta.requiresAuth) {

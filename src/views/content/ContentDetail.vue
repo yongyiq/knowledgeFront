@@ -1,20 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
 import { knowledgeApi } from '@/api'
 import type { Article } from '@/api/types/knowledge'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
+import { checkLogin } from '@/utils/auth'
 
 const route = useRoute()
 const router = useRouter()
 
 // 获取内容ID
-const contentId = route.params.id
+const contentId = ref(route.params.id)
 
 // 文章内容
 const article = ref<Article>({
-  id: Number(contentId),
+  id: Number(contentId.value),
   title: '',
   summary: '',
   category: '',
@@ -128,6 +129,12 @@ const loading = ref(false)
 // 相关文章
 const relatedArticles = ref<Article[]>([])
 
+// 文章标签
+const articleTags = ref<string[]>([])
+
+// 评论内容
+const commentContent = ref('')
+
 // 获取文章详情
 const fetchArticleDetail = async () => {
   try {
@@ -137,12 +144,21 @@ const fetchArticleDetail = async () => {
       text: '加载中...'
     })
 
-    const res = await knowledgeApi.getArticleDetail(contentId) as Article
+    const res = await knowledgeApi.getArticleDetail(contentId.value) as Article
     article.value = res
 
     // 获取相关文章
-    const relatedRes = await knowledgeApi.getRelatedArticles(contentId, 3)
+    const relatedRes = await knowledgeApi.getRelatedArticles(contentId.value, 3)
     relatedArticles.value = relatedRes
+
+    // 获取文章标签
+    try {
+      const tagsRes = await knowledgeApi.getArticleTags(contentId.value)
+      articleTags.value = tagsRes || []
+    } catch (tagError) {
+      console.error('Failed to fetch article tags:', tagError)
+      articleTags.value = []
+    }
 
     loadingInstance.close()
   } catch (error) {
@@ -155,14 +171,19 @@ const fetchArticleDetail = async () => {
 
 // 点赞文章
 const handleLike = async () => {
+  // 检查用户是否已登录
+  if (!checkLogin('登录后才能点赞哦')) {
+    return
+  }
+
   try {
     if (article.value.isLiked) {
-      await knowledgeApi.unlikeArticle(contentId)
+      await knowledgeApi.unlikeArticle(contentId.value)
       article.value.likeCount--
       article.value.isLiked = false
       ElMessage.success('取消点赞成功')
     } else {
-      await knowledgeApi.likeArticle(contentId)
+      await knowledgeApi.likeArticle(contentId.value)
       article.value.likeCount++
       article.value.isLiked = true
       ElMessage.success('点赞成功')
@@ -175,13 +196,18 @@ const handleLike = async () => {
 
 // 收藏文章
 const handleFavorite = async () => {
+  // 检查用户是否已登录
+  if (!checkLogin('登录后才能收藏哦')) {
+    return
+  }
+
   try {
     if (article.value.isFeatured === 1) {
-      await knowledgeApi.unfavoriteArticle(contentId)
+      await knowledgeApi.unfavoriteArticle(contentId.value)
       article.value.isFeatured = 0
       ElMessage.success('取消收藏成功')
     } else {
-      await knowledgeApi.favoriteArticle(contentId)
+      await knowledgeApi.favoriteArticle(contentId.value)
       article.value.isFeatured = 1
       ElMessage.success('收藏成功')
     }
@@ -191,6 +217,16 @@ const handleFavorite = async () => {
   }
 }
 
+// 监听路由参数变化
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    contentId.value = newId
+    fetchArticleDetail()
+    // 滚动到页面顶部
+    window.scrollTo(0, 0)
+  }
+})
+
 onMounted(() => {
   fetchArticleDetail()
 })
@@ -198,11 +234,6 @@ onMounted(() => {
 // 返回上一页
 const goBack = () => {
   router.back()
-}
-
-// 跳转到相关文章
-const viewRelatedArticle = (id: number) => {
-  router.push(`/content/${id}`)
 }
 </script>
 
@@ -244,10 +275,10 @@ const viewRelatedArticle = (id: number) => {
           <MarkdownRenderer v-if="article.content" :content="article.content" />
         </div>
 
-        <div class="article-tags">
+        <div class="article-tags" v-if="articleTags.length > 0">
           <span class="tag-label">标签:</span>
           <el-tag
-            v-for="tag in article.tags"
+            v-for="tag in articleTags"
             :key="tag"
             size="small"
             effect="plain"
@@ -263,9 +294,9 @@ const viewRelatedArticle = (id: number) => {
           <h3>相关文章</h3>
           <ul>
             <li v-for="relatedArticle in relatedArticles" :key="relatedArticle.id">
-              <a @click.prevent="viewRelatedArticle(relatedArticle.id)">
+              <router-link :to="`/content/${relatedArticle.id}`">
                 {{ relatedArticle.title }}
-              </a>
+              </router-link>
             </li>
           </ul>
         </div>

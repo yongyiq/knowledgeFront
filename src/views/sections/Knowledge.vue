@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
 import { knowledgeApi } from '@/api'
 import type { Category, Article, ArticleListResponse } from '@/api/types/knowledge'
+import { checkLogin } from '@/utils/auth'
 
 const router = useRouter()
 
@@ -66,6 +67,58 @@ const selectedCategory = ref('')
 const handleSearch = () => {
   currentPage.value = 1 // 重置到第一页
   fetchArticles()
+}
+
+// 处理点赞
+const handleLike = async (article: Article, event: Event) => {
+  event.stopPropagation() // 阻止事件冒泡，避免触发文章点击
+
+  // 检查用户是否已登录
+  if (!checkLogin('登录后才能点赞哦')) {
+    return
+  }
+
+  try {
+    if (article.isLiked) {
+      await knowledgeApi.unlikeArticle(article.id)
+      article.likeCount--
+      article.isLiked = false
+      ElMessage.success('取消点赞成功')
+    } else {
+      await knowledgeApi.likeArticle(article.id)
+      article.likeCount++
+      article.isLiked = true
+      ElMessage.success('点赞成功')
+    }
+  } catch (error) {
+    console.error('Failed to like/unlike article:', error)
+    ElMessage.error('操作失败')
+  }
+}
+
+// 处理收藏
+const handleFavorite = async (article: Article, event: Event) => {
+  event.stopPropagation() // 阻止事件冒泡，避免触发文章点击
+
+  // 检查用户是否已登录
+  if (!checkLogin('登录后才能收藏哦')) {
+    return
+  }
+
+  try {
+    if (article.isFeatured === 1) {
+      await knowledgeApi.unfavoriteArticle(article.id)
+      article.isFeatured = 0
+      ElMessage.success('取消收藏成功')
+    } else {
+      await knowledgeApi.favoriteArticle(article.id)
+      article.isFeatured = 1
+      ElMessage.success('收藏成功')
+    }
+  } catch (error) {
+    console.error('Failed to favorite/unfavorite article:', error)
+    ElMessage.error('操作失败')
+  }
 }
 
 // 处理分类选择
@@ -183,6 +236,22 @@ onMounted(() => {
             <p class="article-summary">{{ article.summary }}</p>
             <div class="article-actions">
               <el-button type="primary" text>阅读全文</el-button>
+              <div class="action-buttons">
+                <el-button
+                  type="text"
+                  :icon="article.isLiked ? 'Star' : 'StarFilled'"
+                  @click.stop="handleLike(article, $event)"
+                >
+                  {{ article.likeCount }}
+                </el-button>
+                <el-button
+                  type="text"
+                  :icon="article.isFeatured === 1 ? 'Collection' : 'CollectionTag'"
+                  @click.stop="handleFavorite(article, $event)"
+                >
+                  {{ article.isFeatured === 1 ? '已收藏' : '收藏' }}
+                </el-button>
+              </div>
             </div>
           </el-card>
         </div>

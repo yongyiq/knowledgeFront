@@ -152,3 +152,15 @@ export function addComment(id: number | string, data: {
     data
   })
 }
+
+/**
+ * 获取文章标签
+ * @param id 文章ID
+ * @returns 标签数组
+ */
+export function getArticleTags(id: number | string) {
+  return request({
+    url: `/knowledge/articles/${id}/tags`,
+    method: 'get'
+  })
+}
