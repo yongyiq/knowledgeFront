@@ -1,11 +1,26 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElLoading } from 'element-plus'
+import { projectApi } from '@/api'
+import type { Project, ProjectStatus } from '@/api/types/project'
+import { checkLogin } from '@/utils/auth'
 
 const router = useRouter()
 
+// 加载状态
+const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const searchKeyword = ref('')
+const selectedStatus = ref('')
+
 // 项目列表
-const projects = ref([
+const projects = ref<Project[]>([])
+
+// 模拟数据，后续会替换为API数据
+const mockProjects = ref([
   {
     id: 1,
     title: '智能家居控制系统',
@@ -72,7 +87,165 @@ const projects = ref([
     summary: '基于用户饮食习惯和健康状况的个性化饮食推荐系统，支持营养分析和食谱生成。',
     image: 'https://via.placeholder.com/300x200?text=健康饮食'
   }
-])
+]);
+
+
+
+// 获取项目列表
+const fetchProjects = async () => {
+  try {
+    loading.value = true
+    const loadingInstance = ElLoading.service({
+      target: '.projects-grid',
+      text: '加载中...'
+    })
+
+    const res = await projectApi.getProjects({
+      page: currentPage.value - 1, // 后端分页从0开始
+      size: pageSize.value,
+      keyword: searchKeyword.value,
+      status: selectedStatus.value
+    })
+
+    // 适配后端返回的数据格式
+    projects.value = res.records || []
+    total.value = res.total || 0
+
+    loadingInstance.close()
+  } catch (error) {
+    console.error('Failed to fetch projects:', error)
+    ElMessage.error('获取项目列表失败')
+    // 如果接口调用失败，使用模拟数据
+    projects.value = mockProjects.value as unknown as Project[]
+  } finally {
+    loading.value = false
+  }
+}
+
+// 处理搜索
+const handleSearch = () => {
+  currentPage.value = 1 // 重置到第一页
+  fetchProjects()
+}
+
+
+
+// 处理状态选择
+const handleStatusSelect = (status: string) => {
+  selectedStatus.value = status
+  currentPage.value = 1 // 重置到第一页
+  fetchProjects()
+}
+
+// 处理页码变化
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  fetchProjects()
+}
+
+// 处理每页条数变化
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1 // 重置到第一页
+  fetchProjects()
+}
+
+// 点赞项目
+const handleLike = async (project: Project, event: Event) => {
+  event.stopPropagation() // 阻止事件冒泡，避免触发项目点击
+
+  // 检查用户是否已登录
+  if (!checkLogin('登录后才能点赞哦')) {
+    return
+  }
+
+  try {
+    if (project.isLiked) {
+      await projectApi.unlikeProject(project.id)
+      project.likeCount--
+      project.isLiked = false
+      ElMessage.success('取消点赞成功')
+    } else {
+      await projectApi.likeProject(project.id)
+      project.likeCount++
+      project.isLiked = true
+      ElMessage.success('点赞成功')
+    }
+  } catch (error) {
+    console.error('Failed to like/unlike project:', error)
+    ElMessage.error('操作失败')
+  }
+}
+
+// 收藏项目
+const handleFavorite = async (project: Project, event: Event) => {
+  event.stopPropagation() // 阻止事件冒泡，避免触发项目点击
+
+  // 检查用户是否已登录
+  if (!checkLogin('登录后才能收藏哦')) {
+    return
+  }
+
+  try {
+    if (project.isFeatured === 1) {
+      await projectApi.unfavoriteProject(project.id)
+      project.isFeatured = 0
+      ElMessage.success('取消收藏成功')
+    } else {
+      await projectApi.favoriteProject(project.id)
+      project.isFeatured = 1
+      ElMessage.success('收藏成功')
+    }
+  } catch (error) {
+    console.error('Failed to favorite/unfavorite project:', error)
+    ElMessage.error('操作失败')
+  }
+}
+
+// 清除筛选
+const clearFilters = () => {
+  searchKeyword.value = ''
+  selectedStatus.value = ''
+  currentPage.value = 1
+  fetchProjects()
+}
+
+// 获取项目状态类型
+const getStatusType = (status: string): '' | 'info' | 'success' | 'warning' | 'danger' => {
+  switch (status) {
+    case 'planning':
+      return 'info'
+    case 'in_progress':
+      return 'warning'
+    case 'completed':
+      return 'success'
+    case 'archived':
+      return 'danger'
+    default:
+      return ''
+  }
+}
+
+// 获取项目状态文本
+const getStatusText = (status: string): string => {
+  switch (status) {
+    case 'planning':
+      return '规划中'
+    case 'in_progress':
+      return '进行中'
+    case 'completed':
+      return '已完成'
+    case 'archived':
+      return '已归档'
+    default:
+      return '未知'
+  }
+}
+
+// 初始化数据
+onMounted(() => {
+  fetchProjects()
+})
 
 // 讨论话题
 const discussions = ref([
@@ -128,7 +301,7 @@ const activeTab = ref('projects')
 
 // 查看项目详情
 const viewProject = (id: number) => {
-  router.push(`/content/${id}`)
+  router.push(`/project/${id}`)
 }
 
 // 查看讨论详情
@@ -138,8 +311,16 @@ const viewDiscussion = (id: number) => {
 
 // 发布新项目或讨论
 const createNew = () => {
-  // 实际应用中可能会跳转到创建页面或打开对话框
-  console.log('创建新' + (activeTab.value === 'projects' ? '项目' : '讨论'))
+  // 检查用户是否已登录
+  if (!checkLogin('登录后才能发布' + (activeTab.value === 'projects' ? '项目' : '讨论'))) {
+    return
+  }
+
+  if (activeTab.value === 'projects') {
+    router.push('/project/create')
+  } else {
+    router.push('/discussion/create')
+  }
 }
 </script>
 
@@ -151,6 +332,17 @@ const createNew = () => {
     </div>
 
     <div class="action-bar">
+      <div class="search-box">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索项目..."
+          prefix-icon="Search"
+          clearable
+          @keyup.enter="handleSearch"
+        />
+        <el-button type="primary" @click="handleSearch">搜索</el-button>
+      </div>
+
       <el-button type="primary" @click="createNew">
         <el-icon><Plus /></el-icon>
         发布{{ activeTab === 'projects' ? '项目' : '讨论' }}
@@ -159,7 +351,44 @@ const createNew = () => {
 
     <el-tabs v-model="activeTab" class="main-tabs">
       <el-tab-pane label="项目展示" name="projects">
-        <div class="projects-grid">
+        <div class="filter-section">
+          <div class="status-filters">
+            <el-tag
+              :effect="selectedStatus === '' ? 'dark' : 'plain'"
+              @click="selectedStatus = ''; fetchProjects()"
+              class="status-tag"
+            >
+              全部状态
+            </el-tag>
+            <el-tag
+              :effect="selectedStatus === 'planning' ? 'dark' : 'plain'"
+              @click="handleStatusSelect('planning')"
+              class="status-tag"
+              type="info"
+            >
+              规划中
+            </el-tag>
+            <el-tag
+              :effect="selectedStatus === 'in_progress' ? 'dark' : 'plain'"
+              @click="handleStatusSelect('in_progress')"
+              class="status-tag"
+              type="warning"
+            >
+              进行中
+            </el-tag>
+            <el-tag
+              :effect="selectedStatus === 'completed' ? 'dark' : 'plain'"
+              @click="handleStatusSelect('completed')"
+              class="status-tag"
+              type="success"
+            >
+              已完成
+            </el-tag>
+          </div>
+        </div>
+
+        <div class="projects-grid" v-loading="loading">
+          <el-empty v-if="projects.length === 0" description="没有找到匹配的项目" />
           <el-card
             v-for="project in projects"
             :key="project.id"
@@ -168,13 +397,16 @@ const createNew = () => {
             @click="viewProject(project.id)"
           >
             <div class="project-image">
-              <img :src="project.image" :alt="project.title" />
+              <img :src="project.coverImage || 'https://via.placeholder.com/300x200?text=' + project.title" :alt="project.title" />
             </div>
             <div class="project-content">
               <h3 class="project-title">{{ project.title }}</h3>
               <div class="project-meta">
-                <span class="author">{{ project.author }}</span>
-                <span class="date">{{ project.date }}</span>
+                <span class="author">{{ project.createBy }}</span>
+                <span class="date">{{ project.createTime }}</span>
+                <el-tag size="small" :type="getStatusType(project.status)" class="status-tag">
+                  {{ getStatusText(project.status) }}
+                </el-tag>
               </div>
               <p class="project-summary">{{ project.summary }}</p>
               <div class="project-tags">
@@ -188,12 +420,44 @@ const createNew = () => {
                   {{ tag }}
                 </el-tag>
               </div>
+              <div class="project-actions">
+                <el-button
+                  type="text"
+                  :icon="project.isLiked ? 'Star' : 'StarFilled'"
+                  @click.stop="handleLike(project, $event)"
+                >
+                  {{ project.likeCount }}
+                </el-button>
+                <el-button
+                  type="text"
+                  :icon="project.isFeatured === 1 ? 'Collection' : 'CollectionTag'"
+                  @click.stop="handleFavorite(project, $event)"
+                >
+                  {{ project.isFeatured === 1 ? '已收藏' : '收藏' }}
+                </el-button>
+                <span class="view-count">
+                  <el-icon><View /></el-icon> {{ project.viewCount }}
+                </span>
+              </div>
               <div class="project-stats">
-                <span class="likes"><el-icon><ThumbsUp /></el-icon> {{ project.likes }}</span>
-                <span class="comments"><el-icon><ChatDotRound /></el-icon> {{ project.comments }}</span>
+                <span class="comments"><el-icon><ChatDotRound /></el-icon> {{ project.commentCount }}</span>
               </div>
             </div>
           </el-card>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination">
+          <el-pagination
+            background
+            layout="sizes, prev, pager, next, jumper, total"
+            :total="total"
+            :page-size="pageSize"
+            :current-page="currentPage"
+            :page-sizes="[10, 20, 50, 100]"
+            @current-change="handlePageChange"
+            @size-change="handleSizeChange"
+          />
         </div>
       </el-tab-pane>
 
@@ -346,5 +610,51 @@ const createNew = () => {
   display: flex;
   justify-content: center;
   margin-top: 30px;
+}
+
+.project-card {
+  margin-bottom: 20px;
+  transition: transform 0.3s;
+  cursor: pointer;
+}
+
+.project-card:hover {
+  transform: translateY(-5px);
+}
+
+.filter-section {
+  margin-bottom: 20px;
+}
+
+.status-filters {
+  margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.status-tag {
+  cursor: pointer;
+}
+
+.project-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  gap: 15px;
+}
+
+.view-count {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #909399;
+  font-size: 14px;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-right: auto;
 }
 </style>
