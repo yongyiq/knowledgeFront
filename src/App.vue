@@ -15,7 +15,8 @@ const navItems = [
   { name: '项目分享与讨论', path: '/projects' },
   { name: '竞赛专区', path: '/competition' },
   { name: '实用工具', path: '/tools' },
-  { name: '师兄师姐说', path: '/experience' }
+  { name: '师兄师姐说', path: '/experience' },
+  { name: 'AI 聊天', path: '/ai-chat' }
 ]
 
 // 用户登录状态

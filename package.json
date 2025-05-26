@@ -10,8 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@heroicons/vue": "^2.2.0",
+    "@vueuse/core": "^13.2.0",
     "axios": "^1.9.0",
     "crypto-js": "^4.2.0",
+    "dompurify": "^3.2.6",
     "element-plus": "^2.9.8",
     "highlight.js": "^11.11.1",
     "marked": "^15.0.11",
@@ -21,6 +24,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.2",
+    "sass-embedded": "^1.89.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vue-tsc": "^1.8.25"

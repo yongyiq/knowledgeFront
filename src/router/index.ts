@@ -91,6 +91,15 @@ const routes: Array<RouteRecordRaw> = [
       title: '师兄师姐说'
     }
   },
+  // 二级页面 - AI 聊天
+  {
+    path: '/ai-chat',
+    name: 'AIChat',
+    component: () => import('../views/sections/AIChat.vue'),
+    meta: {
+      title: 'AI 聊天助手'
+    }
+  },
   // 三级页面 - 内容详情页
   {
     path: '/content/:id',
