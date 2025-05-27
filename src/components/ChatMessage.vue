@@ -32,8 +32,6 @@ import DOMPurify from 'dompurify'
 import { UserCircleIcon, ComputerDesktopIcon, DocumentDuplicateIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
-import katex from 'katex'
-import 'katex/dist/katex.min.css'
 
 const contentRef = ref(null)
 const copied = ref(false)
@@ -46,37 +44,9 @@ marked.setOptions({
   sanitize: false
 })
 
-// 渲染数学公式
-const renderMath = (text) => {
-  // 处理行内数学公式 $...$
-  text = text.replace(/\$([^$\n]+?)\$/g, (match, formula) => {
-    try {
-      return katex.renderToString(formula, { displayMode: false })
-    } catch (error) {
-      console.warn('KaTeX inline render error:', error)
-      return match // 如果渲染失败，返回原始文本
-    }
-  })
-
-  // 处理块级数学公式 $$...$$
-  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
-    try {
-      return katex.renderToString(formula, { displayMode: true })
-    } catch (error) {
-      console.warn('KaTeX block render error:', error)
-      return match // 如果渲染失败，返回原始文本
-    }
-  })
-
-  return text
-}
-
 // 处理内容
 const processContent = (content) => {
   if (!content) return ''
-
-  // 首先处理数学公式
-  content = renderMath(content)
 
   // 分析内容中的 think 标签
   let result = ''
@@ -119,8 +89,8 @@ const processContent = (content) => {
 
   // 净化处理后的 HTML
   const cleanHtml = DOMPurify.sanitize(result, {
-    ADD_TAGS: ['think', 'code', 'pre', 'span', 'math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'munder', 'mover', 'munderover', 'msqrt', 'mroot', 'mtext', 'mspace', 'annotation'],
-    ADD_ATTR: ['class', 'language', 'xmlns', 'display', 'encoding']
+    ADD_TAGS: ['think', 'code', 'pre', 'span'],
+    ADD_ATTR: ['class', 'language']
   })
 
   // 在净化后的 HTML 中查找代码块并添加复制按钮
@@ -599,31 +569,6 @@ const formatTime = (timestamp) => {
 
 .text :deep(.hljs-variable) {
   color: #e36209;
-}
-
-/* 数学公式样式 */
-.text :deep(.katex) {
-  font-size: 1.1em;
-}
-
-.text :deep(.katex-display) {
-  margin: 1rem 0;
-  text-align: center;
-}
-
-.text :deep(.katex-display > .katex) {
-  display: inline-block;
-  white-space: nowrap;
-}
-
-/* 行内公式样式 */
-.text :deep(.katex:not(.katex-display)) {
-  white-space: nowrap;
-}
-
-/* 确保数学公式在深色主题下也能正常显示 */
-.text :deep(.katex .base) {
-  color: inherit;
 }
 
 @keyframes blink {
