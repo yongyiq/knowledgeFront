@@ -8,14 +8,14 @@ export const chatAPI = {
       if (chatId) {
         url.searchParams.append('chatId', chatId)
       }
-      
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
           ...(typeof data === 'string' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {})
         },
-        body: data instanceof FormData ? data : 
+        body: data instanceof FormData ? data :
           new URLSearchParams({ prompt: data })
       })
 
@@ -45,7 +45,7 @@ export const chatAPI = {
       // 转换为前端需要的格式
       return chatIds.map((id: string) => ({
         id,
-        title: type === 'pdf' ? `PDF对话 ${id.slice(-6)}` : 
+        title: type === 'pdf' ? `PDF对话 ${id.slice(-6)}` :
                type === 'service' ? `咨询 ${id.slice(-6)}` :
                type === 'game' ? `游戏 ${id.slice(-6)}` :
                `对话 ${id.slice(-6)}`
@@ -157,6 +157,50 @@ export const chatAPI = {
       return response.body?.getReader()
     } catch (error) {
       console.error('API Error:', error)
+      throw error
+    }
+  },
+
+  // 删除单个聊天记录
+  async deleteChat(chatId: string, type: string = 'chat') {
+    try {
+      const response = await fetch(`${BASE_URL}/ai/delete/${type}/${chatId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      return result
+    } catch (error) {
+      console.error('Delete chat error:', error)
+      throw error
+    }
+  },
+
+  // 删除所有聊天记录
+  async deleteAllChats(type: string = 'chat') {
+    try {
+      const response = await fetch(`${BASE_URL}/ai/delete/${type}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      return result
+    } catch (error) {
+      console.error('Delete all chats error:', error)
       throw error
     }
   }

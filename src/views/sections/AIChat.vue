@@ -4,10 +4,20 @@
       <div class="sidebar">
         <div class="history-header">
           <h2>聊天记录</h2>
-          <button class="new-chat" @click="startNewChat">
-            <PlusIcon class="icon" />
-            新对话
-          </button>
+          <div class="header-actions">
+            <button class="new-chat" @click="startNewChat">
+              <PlusIcon class="icon" />
+              新对话
+            </button>
+            <button
+              class="clear-all-btn"
+              @click="clearAllChats"
+              title="清空所有记录"
+              v-if="chatHistory.length > 0"
+            >
+              <XMarkIcon class="icon" />
+            </button>
+          </div>
         </div>
         <div class="history-list">
           <div
@@ -15,10 +25,18 @@
             :key="chat.id"
             class="history-item"
             :class="{ active: chat.id === currentChatId }"
-            @click="loadChat(chat.id)"
           >
-            <ChatBubbleLeftRightIcon class="icon" />
-            <span class="title">{{ chat.title }}</span>
+            <div class="history-content" @click="loadChat(chat.id)">
+              <ChatBubbleLeftRightIcon class="icon" />
+              <span class="title">{{ chat.title }}</span>
+            </div>
+            <button
+              class="delete-btn"
+              @click.stop="confirmDeleteChat(chat.id, chat.title)"
+              title="删除对话"
+            >
+              <XMarkIcon class="delete-icon" />
+            </button>
           </div>
         </div>
       </div>
@@ -397,6 +415,61 @@ const removeFile = (index) => {
   }
 }
 
+// 确认删除聊天记录
+const confirmDeleteChat = (chatId, chatTitle) => {
+  if (confirm(`确定要删除对话"${chatTitle}"吗？此操作无法撤销。`)) {
+    deleteChat(chatId)
+  }
+}
+
+// 删除聊天记录
+const deleteChat = async (chatId) => {
+  try {
+    // 调用后端删除API
+    await chatAPI.deleteChat(chatId, 'chat')
+
+    // 从本地聊天历史中移除
+    chatHistory.value = chatHistory.value.filter(chat => chat.id !== chatId)
+
+    // 如果删除的是当前对话，切换到新对话
+    if (currentChatId.value === chatId) {
+      if (chatHistory.value.length > 0) {
+        // 切换到第一个可用的对话
+        await loadChat(chatHistory.value[0].id)
+      } else {
+        // 没有其他对话，创建新对话
+        startNewChat()
+      }
+    }
+
+    console.log('对话删除成功')
+  } catch (error) {
+    console.error('删除对话失败:', error)
+    alert('删除对话失败，请重试')
+  }
+}
+
+// 清空所有聊天记录
+const clearAllChats = async () => {
+  if (confirm('确定要清空所有聊天记录吗？此操作无法撤销。')) {
+    try {
+      // 调用后端删除所有聊天记录API
+      await chatAPI.deleteAllChats('chat')
+
+      // 清空本地聊天历史
+      chatHistory.value = []
+
+      // 创建新对话
+      startNewChat()
+
+      console.log('所有聊天记录已清空')
+    } catch (error) {
+      console.error('清空聊天记录失败:', error)
+      alert('清空聊天记录失败，请重试')
+    }
+  }
+}
+
 onMounted(() => {
   loadChatHistory()
   adjustTextareaHeight()
@@ -444,6 +517,13 @@ onMounted(() => {
 
       h2 {
         font-size: 1.25rem;
+        margin: 0;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
       }
 
       .new-chat {
@@ -457,16 +537,40 @@ onMounted(() => {
         border: none;
         cursor: pointer;
         transition: background-color 0.3s;
-
+        font-size: 0.875rem;
       }
 
       .new-chat:hover {
         background: #0066cc;
+      }
 
-        .icon {
-          width: 1.25rem;
-          height: 1.25rem;
-        }
+      .new-chat .icon {
+        width: 1rem;
+        height: 1rem;
+      }
+
+      .clear-all-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.25rem;
+        background: transparent;
+        border: 1px solid #ddd;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .clear-all-btn:hover {
+        background: #ff4757;
+        border-color: #ff4757;
+        color: white;
+      }
+
+      .clear-all-btn .icon {
+        width: 1rem;
+        height: 1rem;
       }
     }
 
@@ -478,12 +582,10 @@ onMounted(() => {
       .history-item {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
         padding: 0.75rem;
         border-radius: 0.5rem;
-        cursor: pointer;
         transition: background-color 0.3s;
-
+        position: relative;
       }
 
       .history-item:hover {
@@ -492,6 +594,15 @@ onMounted(() => {
 
       .history-item.active {
         background: rgba(0, 124, 240, 0.1);
+      }
+
+      .history-content {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        cursor: pointer;
+        min-width: 0; /* 允许内容收缩 */
       }
 
       .history-item .icon {
@@ -506,6 +617,36 @@ onMounted(() => {
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 0.875rem;
+      }
+
+      .delete-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 0.25rem;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        opacity: 0;
+        transition: all 0.2s;
+        margin-left: 0.5rem;
+        flex-shrink: 0;
+      }
+
+      .history-item:hover .delete-btn {
+        opacity: 1;
+      }
+
+      .delete-btn:hover {
+        background: rgba(255, 71, 87, 0.1);
+        color: #ff4757;
+      }
+
+      .delete-icon {
+        width: 0.875rem;
+        height: 0.875rem;
       }
     }
   }
