@@ -119,6 +119,7 @@ import {
 import ChatMessage from '@/components/ChatMessage.vue'
 import { chatAPI } from '@/api/chat'
 import { checkLogin } from '@/utils/auth'
+import { ElMessage } from 'element-plus'
 
 const isDark = useDark()
 const messagesRef = ref(null)
@@ -329,7 +330,26 @@ const sendMessage = async () => {
         if (done) break
 
         // 累积新内容
-        accumulatedContent += decoder.decode(value)  // 追加新内容
+        const chunk = decoder.decode(value)
+
+        // 检查流式响应中是否包含token过期错误
+        if (chunk.includes('"code":601') || chunk.includes('token过期')) {
+          // 如果流式响应中包含token过期信息，停止处理并显示错误
+          assistantMessage.content = '登录已过期，请重新登录后继续使用。'
+
+          // 清除token并跳转登录页
+          localStorage.removeItem('token')
+          localStorage.removeItem('userInfo')
+
+          // 显示提示并跳转
+          ElMessage.warning('登录已过期，请重新登录')
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 1000)
+          break
+        }
+
+        accumulatedContent += chunk  // 追加新内容
 
         await nextTick(() => {
           // 更新消息，使用累积的内容
@@ -348,7 +368,12 @@ const sendMessage = async () => {
     }
   } catch (error) {
     console.error('发送消息失败:', error)
-    assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
+    // 检查是否是token过期错误
+    if (error.message === 'Token expired') {
+      assistantMessage.content = '登录已过期，请重新登录后继续使用。'
+    } else {
+      assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
+    }
   } finally {
     isStreaming.value = false
     selectedFiles.value = [] // 清空已选文件

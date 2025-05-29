@@ -1,6 +1,7 @@
 import axios, {AxiosResponse, InternalAxiosRequestConfig} from 'axios'
 import { ElMessage } from 'element-plus'
 import { ResultCode, getResultMessage, REDIRECT_LOGIN_CODES } from './resultCode'
+import router from '@/router'
 
 // 创建axios实例
 const service = axios.create({
@@ -59,8 +60,9 @@ service.interceptors.response.use(
       if (REDIRECT_LOGIN_CODES.includes(res.code)) {
         // 清除token和用户信息
         localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        window.location.href = '/login'
+        localStorage.removeItem('userInfo')
+        // ElMessage.warning('登录已过期，请重新登录')
+        router.push('/login')
       }
 
       return Promise.reject(new Error(errorMessage))
@@ -84,18 +86,19 @@ service.interceptors.response.use(
         // 处理需要重定向到登录页的响应码
         if (REDIRECT_LOGIN_CODES.includes(data.code)) {
           localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          window.location.href = '/login'
+          localStorage.removeItem('userInfo')
+          // ElMessage.warning('登录已过期，请重新登录')
+          router.push('/login')
         }
       } else {
         // 处理标准HTTP状态码
         switch (status) {
           case 401:
-            ElMessage.error('未授权，请重新登录')
+            ElMessage.warning('登录已过期，请重新登录')
             // 清除token并重定向到登录页
             localStorage.removeItem('token')
-            localStorage.removeItem('user')
-            window.location.href = '/login'
+            localStorage.removeItem('userInfo')
+            router.push('/login')
             break
           case 403:
             ElMessage.error('拒绝访问')

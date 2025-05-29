@@ -92,7 +92,7 @@ const navigateToSection = (path: string) => {
     <div class="welcome-section container">
       <h2 class="section-title">欢迎来到知识分享库</h2>
       <p class="section-description">
-        知识分享库是一个技术交流、学习分享的平台，为广大学生提供华为相关的技术资源、竞赛信息和交流机会。
+        知识分享库是一个技术交流、学习分享的平台，为广大学生提供相关的技术资源、竞赛信息和交流机会。
       </p>
     </div>
 
