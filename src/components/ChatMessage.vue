@@ -32,6 +32,8 @@ import DOMPurify from 'dompurify'
 import { UserCircleIcon, ComputerDesktopIcon, DocumentDuplicateIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 
 const contentRef = ref(null)
 const copied = ref(false)
@@ -43,6 +45,41 @@ marked.setOptions({
   gfm: true,
   sanitize: false
 })
+
+// 渲染LaTeX公式
+const renderMath = (text) => {
+  if (!text) return ''
+
+  // 处理行内公式 $...$
+  text = text.replace(/\$([^$\n]+?)\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, {
+        displayMode: false,
+        throwOnError: false,
+        errorColor: '#cc0000'
+      })
+    } catch (error) {
+      console.warn('LaTeX渲染错误:', error)
+      return match // 如果渲染失败，返回原始文本
+    }
+  })
+
+  // 处理块级公式 $$...$$
+  text = text.replace(/\$\$([^$]+?)\$\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, {
+        displayMode: true,
+        throwOnError: false,
+        errorColor: '#cc0000'
+      })
+    } catch (error) {
+      console.warn('LaTeX渲染错误:', error)
+      return match // 如果渲染失败，返回原始文本
+    }
+  })
+
+  return text
+}
 
 // 处理内容
 const processContent = (content) => {
@@ -58,8 +95,9 @@ const processContent = (content) => {
     if (content.slice(i, i + 7) === '<think>') {
       isInThinkBlock = true
       if (currentBlock) {
-        // 将之前的普通内容转换为 HTML
-        result += marked.parse(currentBlock)
+        // 先处理LaTeX公式，再转换为 HTML
+        const mathRendered = renderMath(currentBlock)
+        result += marked.parse(mathRendered)
       }
       currentBlock = ''
       i += 6 // 跳过 <think>
@@ -68,8 +106,9 @@ const processContent = (content) => {
 
     if (content.slice(i, i + 8) === '</think>') {
       isInThinkBlock = false
-      // 将 think 块包装在特殊 div 中
-      result += `<div class="think-block">${marked.parse(currentBlock)}</div>`
+      // 先处理LaTeX公式，再将 think 块包装在特殊 div 中
+      const mathRendered = renderMath(currentBlock)
+      result += `<div class="think-block">${marked.parse(mathRendered)}</div>`
       currentBlock = ''
       i += 7 // 跳过 </think>
       continue
@@ -80,17 +119,18 @@ const processContent = (content) => {
 
   // 处理剩余内容
   if (currentBlock) {
+    const mathRendered = renderMath(currentBlock)
     if (isInThinkBlock) {
-      result += `<div class="think-block">${marked.parse(currentBlock)}</div>`
+      result += `<div class="think-block">${marked.parse(mathRendered)}</div>`
     } else {
-      result += marked.parse(currentBlock)
+      result += marked.parse(mathRendered)
     }
   }
 
   // 净化处理后的 HTML
   const cleanHtml = DOMPurify.sanitize(result, {
-    ADD_TAGS: ['think', 'code', 'pre', 'span'],
-    ADD_ATTR: ['class', 'language']
+    ADD_TAGS: ['think', 'code', 'pre', 'span', 'math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'munder', 'mover', 'munderover', 'msqrt', 'mroot', 'mtext', 'mspace', 'annotation'],
+    ADD_ATTR: ['class', 'language', 'xmlns', 'display', 'style']
   })
 
   // 在净化后的 HTML 中查找代码块并添加复制按钮
@@ -483,6 +523,21 @@ const formatTime = (timestamp) => {
 
 .text :deep(.copy-success-message.visible) {
   opacity: 1;
+}
+
+/* LaTeX 公式样式 */
+.text :deep(.katex) {
+  font-size: 1.1em;
+}
+
+.text :deep(.katex-display) {
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.text :deep(.katex-display > .katex) {
+  display: inline-block;
+  white-space: nowrap;
 }
 
 /* 语法高亮样式 */
