@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
-import { projectApi } from '@/api'
+import {projectApi, ProjectListResponse} from '@/api'
 import type { Project, ProjectStatus } from '@/api/types/project'
 import { checkLogin } from '@/utils/auth'
 
@@ -105,11 +105,11 @@ const fetchProjects = async () => {
       size: pageSize.value,
       keyword: searchKeyword.value,
       status: selectedStatus.value
-    })
+    }) as ProjectListResponse
 
     // 适配后端返回的数据格式
-    projects.value = res.records || []
-    total.value = res.total || 0
+    projects.value = res.content || []
+    total.value = res.totalElements || 0
 
     loadingInstance.close()
   } catch (error) {
@@ -213,9 +213,9 @@ const clearFilters = () => {
 // 获取项目状态类型
 const getStatusType = (status: string): '' | 'info' | 'success' | 'warning' | 'danger' => {
   switch (status) {
-    case 'planning':
+    case 'ongoing':
       return 'info'
-    case 'in_progress':
+    case 'progress':
       return 'warning'
     case 'completed':
       return 'success'
@@ -229,9 +229,9 @@ const getStatusType = (status: string): '' | 'info' | 'success' | 'warning' | 'd
 // 获取项目状态文本
 const getStatusText = (status: string): string => {
   switch (status) {
-    case 'planning':
+    case 'ongoing':
       return '规划中'
-    case 'in_progress':
+    case 'progress':
       return '进行中'
     case 'completed':
       return '已完成'
@@ -334,11 +334,11 @@ const createNew = () => {
     <div class="action-bar">
       <div class="search-box">
         <el-input
-          v-model="searchKeyword"
-          placeholder="搜索项目..."
-          prefix-icon="Search"
-          clearable
-          @keyup.enter="handleSearch"
+            v-model="searchKeyword"
+            placeholder="搜索项目..."
+            prefix-icon="Search"
+            clearable
+            @keyup.enter="handleSearch"
         />
         <el-button type="primary" @click="handleSearch">搜索</el-button>
       </div>
@@ -354,33 +354,33 @@ const createNew = () => {
         <div class="filter-section">
           <div class="status-filters">
             <el-tag
-              :effect="selectedStatus === '' ? 'dark' : 'plain'"
-              @click="selectedStatus = ''; fetchProjects()"
-              class="status-tag"
+                :effect="selectedStatus === '' ? 'dark' : 'plain'"
+                @click="selectedStatus = ''; fetchProjects()"
+                class="status-tag"
             >
               全部状态
             </el-tag>
             <el-tag
-              :effect="selectedStatus === 'planning' ? 'dark' : 'plain'"
-              @click="handleStatusSelect('planning')"
-              class="status-tag"
-              type="info"
+                :effect="selectedStatus === 'planning' ? 'dark' : 'plain'"
+                @click="handleStatusSelect('planning')"
+                class="status-tag"
+                type="info"
             >
               规划中
             </el-tag>
             <el-tag
-              :effect="selectedStatus === 'in_progress' ? 'dark' : 'plain'"
-              @click="handleStatusSelect('in_progress')"
-              class="status-tag"
-              type="warning"
+                :effect="selectedStatus === 'in_progress' ? 'dark' : 'plain'"
+                @click="handleStatusSelect('in_progress')"
+                class="status-tag"
+                type="warning"
             >
               进行中
             </el-tag>
             <el-tag
-              :effect="selectedStatus === 'completed' ? 'dark' : 'plain'"
-              @click="handleStatusSelect('completed')"
-              class="status-tag"
-              type="success"
+                :effect="selectedStatus === 'completed' ? 'dark' : 'plain'"
+                @click="handleStatusSelect('completed')"
+                class="status-tag"
+                type="success"
             >
               已完成
             </el-tag>
@@ -390,11 +390,11 @@ const createNew = () => {
         <div class="projects-grid" v-loading="loading">
           <el-empty v-if="projects.length === 0" description="没有找到匹配的项目" />
           <el-card
-            v-for="project in projects"
-            :key="project.id"
-            class="project-card"
-            shadow="hover"
-            @click="viewProject(project.id)"
+              v-for="project in projects"
+              :key="project.id"
+              class="project-card"
+              shadow="hover"
+              @click="viewProject(project.id)"
           >
             <div class="project-image">
               <img :src="project.coverImage || 'https://via.placeholder.com/300x200?text=' + project.title" :alt="project.title" />
@@ -411,27 +411,27 @@ const createNew = () => {
               <p class="project-summary">{{ project.summary }}</p>
               <div class="project-tags">
                 <el-tag
-                  v-for="tag in project.tags"
-                  :key="tag"
-                  size="small"
-                  effect="plain"
-                  class="tag"
+                    v-for="tag in project.tags"
+                    :key="tag"
+                    size="small"
+                    effect="plain"
+                    class="tag"
                 >
                   {{ tag }}
                 </el-tag>
               </div>
               <div class="project-actions">
                 <el-button
-                  type="text"
-                  :icon="project.isLiked ? 'Star' : 'StarFilled'"
-                  @click.stop="handleLike(project, $event)"
+                    type="text"
+                    :icon="project.isLiked ? 'Star' : 'StarFilled'"
+                    @click.stop="handleLike(project, $event)"
                 >
                   {{ project.likeCount }}
                 </el-button>
                 <el-button
-                  type="text"
-                  :icon="project.isFeatured === 1 ? 'Collection' : 'CollectionTag'"
-                  @click.stop="handleFavorite(project, $event)"
+                    type="text"
+                    :icon="project.isFeatured === 1 ? 'Collection' : 'CollectionTag'"
+                    @click.stop="handleFavorite(project, $event)"
                 >
                   {{ project.isFeatured === 1 ? '已收藏' : '收藏' }}
                 </el-button>
@@ -449,14 +449,14 @@ const createNew = () => {
         <!-- 分页 -->
         <div class="pagination">
           <el-pagination
-            background
-            layout="sizes, prev, pager, next, jumper, total"
-            :total="total"
-            :page-size="pageSize"
-            :current-page="currentPage"
-            :page-sizes="[10, 20, 50, 100]"
-            @current-change="handlePageChange"
-            @size-change="handleSizeChange"
+              background
+              layout="sizes, prev, pager, next, jumper, total"
+              :total="total"
+              :page-size="pageSize"
+              :current-page="currentPage"
+              :page-sizes="[10, 20, 50, 100]"
+              @current-change="handlePageChange"
+              @size-change="handleSizeChange"
           />
         </div>
       </el-tab-pane>
@@ -464,9 +464,9 @@ const createNew = () => {
       <el-tab-pane label="技术讨论" name="discussions">
         <div class="discussions-list">
           <el-table
-            :data="discussions"
-            style="width: 100%"
-            @row-click="(row) => viewDiscussion(row.id)"
+              :data="discussions"
+              style="width: 100%"
+              @row-click="(row) => viewDiscussion(row.id)"
           >
             <el-table-column prop="title" label="话题" min-width="300">
               <template #default="scope">
@@ -485,10 +485,10 @@ const createNew = () => {
 
     <div class="pagination">
       <el-pagination
-        background
-        layout="prev, pager, next"
-        :total="50"
-        :page-size="10"
+          background
+          layout="prev, pager, next"
+          :total="50"
+          :page-size="10"
       />
     </div>
   </div>

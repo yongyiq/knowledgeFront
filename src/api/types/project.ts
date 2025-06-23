@@ -1,4 +1,18 @@
 /**
+ * 项目分类
+ */
+export interface ProjectCategory {
+  id: number;
+  name: string;
+  description?: string;
+  count: number;
+  parentId?: number;
+  children?: ProjectCategory[];
+  createTime?: string;
+  updateTime?: string;
+}
+
+/**
  * 项目状态枚举
  */
 export enum ProjectStatus {
@@ -81,13 +95,14 @@ export interface ProjectComment {
  * 分页响应
  */
 export interface ProjectPageResponse<T> {
-  records: T[];
-  total: number;
+  content: T[];
+  totalElements: number;
+  totalPages: number;
   size: number;
-  current: number;
-  pages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
 }
 
 /**

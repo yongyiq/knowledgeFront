@@ -1,6 +1,17 @@
 import request from './request'
 
-
+/**
+ * 获取项目分类列表
+ * @param params 查询参数
+ * @returns 分类列表
+ */
+export function getProjectCategories(params?: any) {
+  return request({
+    url: '/project/categories',
+    method: 'get',
+    params
+  })
+}
 
 /**
  * 获取项目列表
