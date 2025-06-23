@@ -81,14 +81,13 @@ export interface ProjectComment {
  * 分页响应
  */
 export interface ProjectPageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
+  records: T[];
+  total: number;
   size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
+  current: number;
+  pages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
 }
 
 /**
