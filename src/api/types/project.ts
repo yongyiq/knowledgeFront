@@ -16,8 +16,8 @@ export interface ProjectCategory {
  * 项目状态枚举
  */
 export enum ProjectStatus {
-  PLANNING = 'planning',
-  IN_PROGRESS = 'in_progress',
+  PLANNING = 'ongoing',
+  IN_PROGRESS = 'progress',
   COMPLETED = 'completed',
   ARCHIVED = 'archived'
 }

@@ -109,6 +109,15 @@ const routes: Array<RouteRecordRaw> = [
       title: '内容详情'
     }
   },
+  // 三级页面 - 项目详情页
+  {
+    path: '/project/:id',
+    name: 'ProjectDetail',
+    component: () => import('../views/content/ContentDetail.vue'),
+    meta: {
+      title: '项目详情'
+    }
+  },
   // 404页面
   {
     path: '/:pathMatch(.*)*',

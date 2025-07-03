@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
-import {projectApi, ProjectListResponse} from '@/api'
+import {projectApi, discussionApi, ProjectListResponse} from '@/api'
 import type { Project, ProjectStatus } from '@/api/types/project'
 import { checkLogin } from '@/utils/auth'
 
@@ -18,6 +18,9 @@ const selectedStatus = ref('')
 
 // 项目列表
 const projects = ref<Project[]>([])
+
+// 热门项目
+const hotProjects = ref<Project[]>([])
 
 // 模拟数据，后续会替换为API数据
 const mockProjects = ref([
@@ -91,6 +94,17 @@ const mockProjects = ref([
 
 
 
+// 获取热门项目
+const fetchHotProjects = async () => {
+  try {
+    const res = await projectApi.getHotProjects(5)
+    hotProjects.value = res || []
+  } catch (error) {
+    console.error('Failed to fetch hot projects:', error)
+    // 静默失败，不影响主要功能
+  }
+}
+
 // 获取项目列表
 const fetchProjects = async () => {
   try {
@@ -125,7 +139,13 @@ const fetchProjects = async () => {
 // 处理搜索
 const handleSearch = () => {
   currentPage.value = 1 // 重置到第一页
-  fetchProjects()
+  discussionCurrentPage.value = 1 // 重置讨论页码
+
+  if (activeTab.value === 'projects') {
+    fetchProjects()
+  } else if (activeTab.value === 'discussions') {
+    fetchDiscussions()
+  }
 }
 
 
@@ -207,7 +227,13 @@ const clearFilters = () => {
   searchKeyword.value = ''
   selectedStatus.value = ''
   currentPage.value = 1
-  fetchProjects()
+  discussionCurrentPage.value = 1
+
+  if (activeTab.value === 'projects') {
+    fetchProjects()
+  } else if (activeTab.value === 'discussions') {
+    fetchDiscussions()
+  }
 }
 
 // 获取项目状态类型
@@ -245,10 +271,19 @@ const getStatusText = (status: string): string => {
 // 初始化数据
 onMounted(() => {
   fetchProjects()
+  fetchHotProjects()
+  fetchDiscussions()
 })
 
-// 讨论话题
-const discussions = ref([
+// 讨论相关状态
+const discussions = ref([])
+const discussionLoading = ref(false)
+const discussionCurrentPage = ref(1)
+const discussionPageSize = ref(10)
+const discussionTotal = ref(0)
+
+// 模拟讨论数据，后续会替换为API数据
+const mockDiscussions = ref([
   {
     id: 1,
     title: '如何选择适合自己的项目开发框架？',
@@ -296,17 +331,58 @@ const discussions = ref([
   }
 ])
 
+// 获取讨论列表
+const fetchDiscussions = async () => {
+  try {
+    discussionLoading.value = true
+    const res = await discussionApi.getDiscussions({
+      page: discussionCurrentPage.value - 1,
+      size: discussionPageSize.value,
+      keyword: searchKeyword.value
+    })
+
+    discussions.value = res.records || []
+    discussionTotal.value = res.total || 0
+  } catch (error) {
+    console.error('Failed to fetch discussions:', error)
+    ElMessage.error('获取讨论列表失败')
+    // 如果接口调用失败，使用模拟数据
+    discussions.value = mockDiscussions.value
+  } finally {
+    discussionLoading.value = false
+  }
+}
+
 // 当前活动标签
 const activeTab = ref('projects')
 
+// 监听标签切换
+watch(() => activeTab.value, (newTab) => {
+  if (newTab === 'discussions') {
+    fetchDiscussions()
+  }
+})
+
 // 查看项目详情
-const viewProject = (id: number) => {
-  router.push(`/project/${id}`)
+const viewProject = async (id: number) => {
+  try {
+    // 可以在这里添加浏览量统计等逻辑
+    router.push(`/project/${id}`)
+  } catch (error) {
+    console.error('Failed to navigate to project:', error)
+    ElMessage.error('跳转失败')
+  }
+}
+
+// 处理讨论分页变化
+const handleDiscussionPageChange = (page: number) => {
+  discussionCurrentPage.value = page
+  fetchDiscussions()
 }
 
 // 查看讨论详情
 const viewDiscussion = (id: number) => {
-  router.push(`/content/${id}`)
+  router.push(`/discussion/${id}`)
 }
 
 // 发布新项目或讨论
@@ -361,16 +437,16 @@ const createNew = () => {
               全部状态
             </el-tag>
             <el-tag
-                :effect="selectedStatus === 'planning' ? 'dark' : 'plain'"
-                @click="handleStatusSelect('planning')"
+                :effect="selectedStatus === 'ongoing' ? 'dark' : 'plain'"
+                @click="handleStatusSelect('ongoing')"
                 class="status-tag"
                 type="info"
             >
               规划中
             </el-tag>
             <el-tag
-                :effect="selectedStatus === 'in_progress' ? 'dark' : 'plain'"
-                @click="handleStatusSelect('in_progress')"
+                :effect="selectedStatus === 'progress' ? 'dark' : 'plain'"
+                @click="handleStatusSelect('progress')"
                 class="status-tag"
                 type="warning"
             >
@@ -462,8 +538,10 @@ const createNew = () => {
       </el-tab-pane>
 
       <el-tab-pane label="技术讨论" name="discussions">
-        <div class="discussions-list">
+        <div class="discussions-list" v-loading="discussionLoading">
+          <el-empty v-if="discussions.length === 0" description="没有找到相关讨论" />
           <el-table
+              v-else
               :data="discussions"
               style="width: 100%"
               @row-click="(row) => viewDiscussion(row.id)"
@@ -473,24 +551,27 @@ const createNew = () => {
                 <div class="discussion-title">{{ scope.row.title }}</div>
               </template>
             </el-table-column>
-            <el-table-column prop="author" label="发起人" width="120" />
-            <el-table-column prop="date" label="发布日期" width="120" />
-            <el-table-column prop="replies" label="回复数" width="100" />
-            <el-table-column prop="views" label="浏览数" width="100" />
-            <el-table-column prop="lastReply" label="最后回复" width="120" />
+            <el-table-column prop="createBy" label="发起人" width="120" />
+            <el-table-column prop="createTime" label="发布日期" width="120" />
+            <el-table-column prop="replyCount" label="回复数" width="100" />
+            <el-table-column prop="viewCount" label="浏览数" width="100" />
+            <el-table-column prop="lastReplyTime" label="最后回复" width="120" />
           </el-table>
+
+          <!-- 讨论分页 -->
+          <div class="pagination" v-if="discussionTotal > 0">
+            <el-pagination
+                background
+                layout="prev, pager, next, total"
+                :total="discussionTotal"
+                :page-size="discussionPageSize"
+                :current-page="discussionCurrentPage"
+                @current-change="handleDiscussionPageChange"
+            />
+          </div>
         </div>
       </el-tab-pane>
     </el-tabs>
-
-    <div class="pagination">
-      <el-pagination
-          background
-          layout="prev, pager, next"
-          :total="50"
-          :page-size="10"
-      />
-    </div>
   </div>
 </template>
 
