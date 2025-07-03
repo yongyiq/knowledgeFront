@@ -297,9 +297,9 @@ onMounted(() => {
 // 获取项目状态类型
 const getStatusType = (status: string): '' | 'info' | 'success' | 'warning' | 'danger' => {
   switch (status) {
-    case 'planning':
+    case 'ongoing':
       return 'info'
-    case 'in_progress':
+    case 'progress':
       return 'warning'
     case 'completed':
       return 'success'
@@ -313,9 +313,9 @@ const getStatusType = (status: string): '' | 'info' | 'success' | 'warning' | 'd
 // 获取项目状态文本
 const getStatusText = (status: string): string => {
   switch (status) {
-    case 'planning':
+    case 'ongoing':
       return '规划中'
-    case 'in_progress':
+    case 'progress':
       return '进行中'
     case 'completed':
       return '已完成'
